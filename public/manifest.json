@@ -1,0 +1,16 @@
+{
+  "name": "RATBV Bus Times",
+  "short_name": "RATBV",
+  "description": "Orare autobuze RATBV Brasov",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#6366f1",
+  "theme_color": "#6366f1",
+  "icons": [
+    {
+      "src": "/bus-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
