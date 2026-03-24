@@ -6,6 +6,7 @@ import { handleUsers } from "./routes/users";
 import { handleRoutes } from "./routes/routes";
 import { handleScraper } from "./routes/scraper";
 import { handleNextBus } from "./routes/nextBus";
+import { handleMapRoute } from "./routes/mapRoute";
 
 const DIST_DIR = join(import.meta.dir, "../dist");
 const PORT = 4200;
@@ -38,7 +39,8 @@ const server = Bun.serve({
         (await handleUsers(req, url)) ??
         (await handleRoutes(req, url)) ??
         (await handleScraper(req, url)) ??
-        (await handleNextBus(req, url));
+        (await handleNextBus(req, url)) ??
+        (await handleMapRoute(req, url));
 
       // Logs endpoint
       if (!response && url.pathname.startsWith("/api/logs/") && req.method === "GET") {

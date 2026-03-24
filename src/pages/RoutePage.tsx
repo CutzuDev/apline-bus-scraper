@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatTimestamp } from "@/lib/time";
+import { RouteMap } from "@/components/RouteMap";
 
 export function RoutePage() {
   const { routeId } = useParams<{ routeId: string }>();
@@ -96,6 +97,20 @@ export function RoutePage() {
       {/* Timetable */}
       <div className="bg-card border border-border rounded-2xl p-4">
         <TimeGrid busTimes={busTimes} />
+      </div>
+
+      {/* Map */}
+      <div className="bg-card border border-border rounded-2xl p-4">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          Traseu
+        </p>
+        <RouteMap
+          routeNumber={route.routeNumber}
+          direction={route.direction}
+          stationName={route.stationName}
+          directionFrom={route.directionFrom}
+          directionTo={route.directionTo}
+        />
       </div>
 
       {/* Siri endpoint */}

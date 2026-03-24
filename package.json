@@ -10,13 +10,16 @@
     "migrate": "bun scripts/migrate.ts"
   },
   "dependencies": {
+    "@types/leaflet": "^1.9.21",
     "@types/selenium-webdriver": "^4.35.1",
     "bun": "^1.2.23",
     "chromedriver": "^141.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "leaflet": "^1.9.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-leaflet": "^5.0.0",
     "react-router-dom": "^7.1.0",
     "selenium-webdriver": "^4.36.0",
     "tailwind-merge": "^3.5.0"
