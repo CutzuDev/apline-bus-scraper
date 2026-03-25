@@ -79,11 +79,10 @@ export function RouteMap({ routeNumber, direction, stationName, directionFrom, d
         zoom={14}
         style={{ height: "100%", width: "100%" }}
         zoomControl={false}
-        attributionControl={false}
       >
         <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
         <FitBounds coords={data.polyline} />
 

@@ -16,6 +16,42 @@ RATBV URLs follow the pattern:
 - Master page: `https://www.ratbv.ro/afisaje/{line}-{direction}.html`
 - Station page: `https://www.ratbv.ro/afisaje/{line}-{direction}/line_{line}_{stationIndex}_cl1_ro.html`
 
+## External Services
+
+### ratbv.ro (Web Scraping)
+
+The primary data source. ratbv.ro has **no public API** — timetables are served inside HTML framesets that require a real browser to load. Selenium WebDriver launches headless Chrome, navigates to the target URL, switches between frames, and reads DOM elements.
+
+- No authentication or API key required
+- Access pattern: one Chrome instance per scrape, closed immediately after
+- Failure mode: if the site is down or changes its DOM structure, scraping silently fails and cached data is served
+
+### Overpass API (`overpass.openstreetmap.fr`)
+
+Used to fetch bus route geometry and stop positions from OpenStreetMap data.
+
+- **Endpoint**: `https://overpass.openstreetmap.fr/api/interpreter` (POST)
+- **Query language**: OverpassQL
+- **What's fetched**: Bus route relations filtered to Brasov bounding box (45.58–45.75 lat, 25.50–25.70 lon), including way geometry (polyline) and stop/platform node tags
+- **Direction matching**: When multiple relations exist for a line, direction is inferred by matching `from`/`to` OSM tags against stored `directionFrom`/`directionTo` metadata. Falls back to index order (`dus`=0, `intors`=1)
+- **Rate limiting**: 7-day flat-file cache per `{line}-{direction}` pair in `data/map-cache/` prevents repeated queries
+- **Handler**: `server/routes/mapRoute.ts`
+
+### OpenStreetMap Tile Server (`tile.openstreetmap.org`)
+
+Background map tiles loaded directly by Leaflet in the browser.
+
+- **Endpoint**: `https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png`
+- No server-side involvement — tiles are fetched client-side by `src/components/RouteMap.tsx`
+- Browser caches tiles automatically
+
+### ChromeDriver (Local Binary)
+
+Not a network service. ChromeDriver is a local executable that Selenium connects to over localhost. It drives headless Chromium.
+
+- **Default path**: `/usr/bin/chromedriver` (configurable via `CHROMEDRIVER_PATH` env var)
+- **Chrome flags used**: `--headless`, `--no-sandbox`, `--single-process`, `--disable-gpu`, images disabled, max heap 256 MB — tuned for minimal resource use on constrained servers
+
 ## Data Flow
 
 ### Request-Scoped User Identification
@@ -40,7 +76,17 @@ This design exists because RATBV schedules rarely change, so scraping on every l
 
 ### Historical Logging
 
-Every scrape result is appended to `data/logs/{routeId}.json` as `{ timestamp, busTimes }`. Logs are shared across users -- the same physical bus stop produces the same data regardless of who requested it. Logs can be queried via `GET /api/logs/:routeId`.
+Every scrape result is appended to `data/logs/{routeId}.json` as `{ timestamp, busTimes }`. Logs are shared across users -- the same physical bus stop produces the same data regardless of who requested it. Logs can be queried via `GET /api/logs/:routeId` _(endpoint not yet implemented)_.
+
+### Map Cache Pattern
+
+Route geometry from the Overpass API is expensive to re-fetch (network latency, rate limits). Results are cached per `{line}-{direction}` pair:
+
+- **Location**: `data/map-cache/{line}-{direction}.json`
+- **TTL**: 7 days (`CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000`)
+- **Format**: `{ timestamp: number, data: MapRouteData }` where `MapRouteData = { polyline: [lat, lng][], stops: StopPoint[], relationId: number }`
+- On cache hit the handler returns immediately without calling Overpass
+- Cache is written after every successful Overpass fetch
 
 ## Frontend Architecture
 
@@ -54,7 +100,7 @@ App
       HomePage -> RouteCard[]
       DashboardPage -> RouteCard[] (with delete)
       AddLinePage -> DirectionToggle, StationPicker
-      RoutePage -> TimeGrid
+      RoutePage -> TimeGrid, RouteMap
 ```
 
 ### Hook Pattern
