@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useRoutes } from "@/hooks/useRoutes";
 import { RouteCard } from "@/components/RouteCard";
 import { Button } from "@/components/ui/button";
@@ -23,10 +24,12 @@ import { type Route } from "@/lib/api";
 
 interface SortableRouteCardProps {
   route: Route;
-  onDelete: () => void;
+  selecting: boolean;
+  selected: boolean;
+  onToggle: () => void;
 }
 
-function SortableRouteCard({ route, onDelete }: SortableRouteCardProps) {
+function SortableRouteCard({ route, selecting, selected, onToggle }: SortableRouteCardProps) {
   const {
     attributes,
     listeners,
@@ -34,7 +37,7 @@ function SortableRouteCard({ route, onDelete }: SortableRouteCardProps) {
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: route.id });
+  } = useSortable({ id: route.id, disabled: selecting });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -47,9 +50,10 @@ function SortableRouteCard({ route, onDelete }: SortableRouteCardProps) {
     <div ref={setNodeRef} style={style}>
       <RouteCard
         route={route}
-        showDelete
-        onDelete={onDelete}
-        dragHandleProps={{ ...attributes, ...listeners } as React.HTMLAttributes<HTMLButtonElement>}
+        dragHandleProps={selecting ? undefined : { ...attributes, ...listeners } as React.HTMLAttributes<HTMLButtonElement>}
+        selecting={selecting}
+        selected={selected}
+        onToggle={onToggle}
       />
     </div>
   );
@@ -57,6 +61,9 @@ function SortableRouteCard({ route, onDelete }: SortableRouteCardProps) {
 
 export function DashboardPage() {
   const { routes, loading, deleteRoute, reorderRoutes } = useRoutes();
+  const [selecting, setSelecting] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [deleting, setDeleting] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -74,13 +81,79 @@ export function DashboardPage() {
     }
   }
 
+  function toggleSelect(id: string) {
+    setSelected(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function enterSelecting() {
+    setSelecting(true);
+    setSelected(new Set());
+  }
+
+  function cancelSelecting() {
+    setSelecting(false);
+    setSelected(new Set());
+  }
+
+  async function confirmDelete() {
+    if (selected.size === 0) {
+      cancelSelecting();
+      return;
+    }
+    setDeleting(true);
+    for (const id of selected) {
+      await deleteRoute(id);
+    }
+    setDeleting(false);
+    setSelecting(false);
+    setSelected(new Set());
+  }
+
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-black text-foreground">Dashboard</h1>
-        <Link to="/add-line">
-          <Button size="sm">+ Adauga linie</Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          {selecting ? (
+            <>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={cancelSelecting}
+                disabled={deleting}
+              >
+                Anuleaza
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={confirmDelete}
+                disabled={deleting || selected.size === 0}
+              >
+                {deleting
+                  ? "Se sterge..."
+                  : selected.size > 0
+                  ? `Sterge (${selected.size})`
+                  : "Sterge"}
+              </Button>
+            </>
+          ) : (
+            <>
+              {routes.length > 0 && (
+                <Button size="sm" variant="ghost" onClick={enterSelecting}>
+                  Sterge
+                </Button>
+              )}
+              <Link to="/add-line">
+                <Button size="sm">+ Adauga linie</Button>
+              </Link>
+            </>
+          )}
+        </div>
       </div>
 
       {loading ? (
@@ -113,11 +186,9 @@ export function DashboardPage() {
                 <SortableRouteCard
                   key={route.id}
                   route={route}
-                  onDelete={async () => {
-                    if (confirm(`Stergi ${route.routeNumber.toUpperCase()} - ${route.stationName}?`)) {
-                      await deleteRoute(route.id);
-                    }
-                  }}
+                  selecting={selecting}
+                  selected={selected.has(route.id)}
+                  onToggle={() => toggleSelect(route.id)}
                 />
               ))}
             </div>
