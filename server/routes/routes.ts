@@ -45,6 +45,25 @@ export async function handleRoutes(req: Request, url: URL): Promise<Response | n
     return Response.json({ success: true }, { status: 201 });
   }
 
+  if (url.pathname === "/api/routes/reorder" && method === "PATCH") {
+    const userName = getUserParam(url);
+    if (!userName) {
+      return Response.json({ message: "Parametrul ?user= este obligatoriu" }, { status: 400 });
+    }
+
+    const user = await getUser(userName);
+    if (!user) {
+      return Response.json({ message: "Utilizatorul nu a fost gasit" }, { status: 404 });
+    }
+
+    const { ids }: { ids: string[] } = await req.json();
+    const routeMap = new Map(user.routes.map(r => [r.id, r]));
+    user.routes = ids.map(id => routeMap.get(id)).filter(Boolean) as Route[];
+    await saveUser(user);
+
+    return Response.json({ success: true });
+  }
+
   if (url.pathname.startsWith("/api/routes/") && method === "DELETE") {
     const userName = getUserParam(url);
     if (!userName) {

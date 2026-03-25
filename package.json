@@ -10,6 +10,9 @@
     "migrate": "bun scripts/migrate.ts"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@types/leaflet": "^1.9.21",
     "@types/selenium-webdriver": "^4.35.1",
     "bun": "^1.2.23",

@@ -3,9 +3,76 @@ import { RouteCard } from "@/components/RouteCard";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router-dom";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { type Route } from "@/lib/api";
+
+interface SortableRouteCardProps {
+  route: Route;
+  onDelete: () => void;
+}
+
+function SortableRouteCard({ route, onDelete }: SortableRouteCardProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: route.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 10 : undefined,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <RouteCard
+        route={route}
+        showDelete
+        onDelete={onDelete}
+        dragHandleProps={{ ...attributes, ...listeners } as React.HTMLAttributes<HTMLButtonElement>}
+      />
+    </div>
+  );
+}
 
 export function DashboardPage() {
-  const { routes, loading, deleteRoute } = useRoutes();
+  const { routes, loading, deleteRoute, reorderRoutes } = useRoutes();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 250, tolerance: 5 },
+    })
+  );
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = routes.findIndex(r => r.id === active.id);
+      const newIndex = routes.findIndex(r => r.id === over.id);
+      reorderRoutes(arrayMove(routes, oldIndex, newIndex));
+    }
+  }
 
   return (
     <div className="space-y-5">
@@ -32,20 +99,30 @@ export function DashboardPage() {
           </Link>
         </div>
       ) : (
-        <div className="space-y-3">
-          {routes.map((route) => (
-            <RouteCard
-              key={route.id}
-              route={route}
-              showDelete
-              onDelete={async () => {
-                if (confirm(`Stergi ${route.routeNumber.toUpperCase()} - ${route.stationName}?`)) {
-                  await deleteRoute(route.id);
-                }
-              }}
-            />
-          ))}
-        </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={routes.map(r => r.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="space-y-3">
+              {routes.map((route) => (
+                <SortableRouteCard
+                  key={route.id}
+                  route={route}
+                  onDelete={async () => {
+                    if (confirm(`Stergi ${route.routeNumber.toUpperCase()} - ${route.stationName}?`)) {
+                      await deleteRoute(route.id);
+                    }
+                  }}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
       )}
     </div>
   );

@@ -44,6 +44,12 @@ export const api = {
       method: "DELETE",
     }),
 
+  reorderRoutes: (user: string, ids: string[]) =>
+    request<{ success: boolean }>(`/api/routes/reorder${userParam(user)}`, {
+      method: "PATCH",
+      body: JSON.stringify({ ids }),
+    }),
+
   scrapeLine: (masterUrl: string) =>
     request<LineMetadata>("/api/scrape-line", {
       method: "POST",

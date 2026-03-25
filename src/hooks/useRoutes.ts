@@ -49,5 +49,18 @@ export function useRoutes() {
     [currentUser, fetchRoutes]
   );
 
-  return { routes, loading, error, addRoute, deleteRoute, refetch: fetchRoutes };
+  const reorderRoutes = useCallback(
+    async (newRoutes: Route[]) => {
+      if (!currentUser) return;
+      setRoutes(newRoutes); // optimistic update
+      try {
+        await api.reorderRoutes(currentUser, newRoutes.map(r => r.id));
+      } catch {
+        await fetchRoutes(); // revert on failure
+      }
+    },
+    [currentUser, fetchRoutes]
+  );
+
+  return { routes, loading, error, addRoute, deleteRoute, reorderRoutes, refetch: fetchRoutes };
 }
