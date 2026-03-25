@@ -93,7 +93,7 @@ async function fetchFromOverpass(line: string): Promise<OverpassResponse> {
   const refUpper = line.toUpperCase();
   // Fetch relation geometry + member node tags in one query
   const query = `[out:json][timeout:25];
-relation["route"="bus"]["ref"~"^${refUpper}$",i](45.58,25.50,45.75,25.70)->.r;
+relation["route"~"^(bus|trolleybus)$"]["ref"~"^${refUpper}$",i](45.58,25.50,45.75,25.70)->.r;
 .r out geom;
 node(r.r:"stop")->.s1;
 node(r.r:"stop_entry_only")->.s2;
