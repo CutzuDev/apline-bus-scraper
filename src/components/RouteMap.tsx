@@ -22,14 +22,21 @@ interface RouteMapProps {
   directionTo?: string;
 }
 
-function normalizeName(name: string): string {
+function stopWords(name: string): string[] {
   return name
     .toLowerCase()
     .replace(/ă/g, "a").replace(/â/g, "a")
     .replace(/î/g, "i")
     .replace(/ș/g, "s").replace(/ş/g, "s")
     .replace(/ț/g, "t").replace(/ţ/g, "t")
-    .replace(/\s+/g, "_");
+    .replace(/[^a-z0-9 ]/g, "")
+    .split(/\s+/)
+    .filter(w => w.length >= 3);
+}
+
+function matchesStop(osmName: string, ratbvName: string): boolean {
+  const osmWords = new Set(stopWords(osmName));
+  return stopWords(ratbvName).some(w => osmWords.has(w));
 }
 
 function FitBounds({ coords }: { coords: [number, number][] }) {
@@ -78,10 +85,7 @@ export function RouteMap({ routeNumber, direction, stationName, directionFrom, d
     );
   }
 
-  const normalizedStation = normalizeName(stationName);
-  const trackedStop = data.stops.find((s) =>
-    normalizeName(s.name).includes(normalizedStation.slice(0, 6))
-  );
+  const trackedStop = data.stops.find((s) => matchesStop(s.name, stationName));
 
   return (
     <div className="rounded-xl overflow-hidden" style={{ height: 280 }}>
@@ -103,8 +107,8 @@ export function RouteMap({ routeNumber, direction, stationName, directionFrom, d
           pathOptions={{ color: "#52b4ff", weight: 4, opacity: 0.85 }}
         />
 
-        {/* Stop markers */}
-        {data.stops.map((stop, i) => (
+        {/* Stop markers — skip the tracked stop so the orange marker stands out */}
+        {data.stops.map((stop, i) => stop === trackedStop ? null : (
           <CircleMarker
             key={i}
             center={[stop.lat, stop.lng]}
