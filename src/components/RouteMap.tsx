@@ -22,6 +22,16 @@ interface RouteMapProps {
   directionTo?: string;
 }
 
+function normalizeName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/ă/g, "a").replace(/â/g, "a")
+    .replace(/î/g, "i")
+    .replace(/ș/g, "s").replace(/ş/g, "s")
+    .replace(/ț/g, "t").replace(/ţ/g, "t")
+    .replace(/\s+/g, "_");
+}
+
 function FitBounds({ coords }: { coords: [number, number][] }) {
   const map = useMap();
   useEffect(() => {
@@ -68,8 +78,9 @@ export function RouteMap({ routeNumber, direction, stationName, directionFrom, d
     );
   }
 
+  const normalizedStation = normalizeName(stationName);
   const trackedStop = data.stops.find((s) =>
-    s.name.toLowerCase().includes(stationName.toLowerCase().slice(0, 6))
+    normalizeName(s.name).includes(normalizedStation.slice(0, 6))
   );
 
   return (

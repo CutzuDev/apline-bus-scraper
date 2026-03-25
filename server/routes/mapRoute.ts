@@ -195,10 +195,14 @@ export async function handleMapRoute(
     return Response.json({ error: "Lipseste parametrul line" }, { status: 400 });
   }
 
+  const CACHE_HEADERS = {
+    "Cache-Control": `public, max-age=${7 * 24 * 60 * 60}, stale-while-revalidate=3600`,
+  };
+
   // Check cache
   const cached = await readCache(cacheKey(line, direction));
   if (cached) {
-    return Response.json(cached);
+    return Response.json(cached, { headers: CACHE_HEADERS });
   }
 
   try {
@@ -232,7 +236,7 @@ export async function handleMapRoute(
     };
 
     await writeCache(cacheKey(line, direction), data);
-    return Response.json(data);
+    return Response.json(data, { headers: CACHE_HEADERS });
   } catch (err) {
     console.error("[map-route] error:", err);
     return Response.json({ error: "Eroare la incarcarea hartii" }, { status: 500 });
